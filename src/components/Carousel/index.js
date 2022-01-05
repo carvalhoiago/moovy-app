@@ -20,7 +20,7 @@ export const Carousel = (props) => {
       >
         {props.content.map((movie, index)=>{
           return(
-            <Card key={index} movie={movie} />
+            <Card key={index} movie={movie}  setDeleteFunction={props.setDeleteFunction} setMovieModal={props.setMovieModal}/>
           )
         })}
       </ScrollView>

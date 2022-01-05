@@ -8,6 +8,7 @@ export const Container = styled.View`
   background-color: #8F8F8F;
   justify-content: center;
   align-items: center;
+  z-index: 0;
 `
 
 export const TitleContainer = styled.View`
