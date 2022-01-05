@@ -16,7 +16,7 @@ export const MyLibrary = () => {
 
   const getMovies = () => {
     setRefreshing(true);
-    LocalDBapi.get('/?apikey=5e1d897b&s=monster')
+    LocalDBapi.get('/movies')
     .then((response)=>{
       console.log(response)
       if(response.status === 200){
