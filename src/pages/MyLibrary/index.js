@@ -18,7 +18,6 @@ export const MyLibrary = () => {
     setRefreshing(true);
     LocalDBapi.get('/movies')
     .then((response)=>{
-      console.log(response)
       if(response.status === 200){
         setMovies(response.data)
       }
@@ -26,12 +25,15 @@ export const MyLibrary = () => {
         setMovies(response.data.Search)
       }*/
       setRefreshing(false)
+    }).catch((err) => {
+      setRefreshing(false)
     })
   }
 
   useEffect(()=>{
     getMovies()
   },[])
+  
 
 
   const onRefresh = useCallback(() => {
@@ -48,13 +50,13 @@ export const MyLibrary = () => {
       }
       
       <ScrollView
-        showsHorizontalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
           />
         }
+        showsHorizontalScrollIndicator={false}
       >
         <TitleContainer>
           <Title>My Library</Title>

@@ -4,23 +4,31 @@ import MicIcon from 'react-native-vector-icons/MaterialCommunityIcons'
 import EntypoIcons from 'react-native-vector-icons/Entypo'
 import TrashIcon from 'react-native-vector-icons/Octicons'
 import { Audio } from 'expo-av';
-import { ConfirmModal } from "../ConfirmModal";
+import { LocalDBapi, ServerURL } from '../../services/api'
+
 
 export const Card = (props) => {
   // Refs for the audio
   const [AudioRecorder, setAudioRecorder] = useState(useRef(new Audio.Recording()));
 
   // States for UI
-  const [RecordedURI, SetRecordedURI] = useState("");
+  const [RecordedURI, SetRecordedURI] = useState(props.movie.filename!==null?`${ServerURL}/${props.movie.filename}`:"");
   const [AudioPermission, SetAudioPermission] = useState(false);
   const [IsRecording, SetIsRecording] = useState(false);
   const [sound, setSound] = useState();
+  const [movie, setMovie] = useState(props.movie)
 
   
   // Initial Load to get the audio permission
   useEffect(() => {
     GetPermission();
   }, []);
+
+  useEffect(()=>{
+    setMovie(props.movie)
+  }, [props])
+
+
 
 
   // Function to get the audio permission
@@ -30,19 +38,19 @@ export const Card = (props) => {
   };
   
   async function playSound() {
-    console.log('Loading Sound');
+
+    const path = `${ServerURL}/${movie.filename}`
+
     const { sound } = await Audio.Sound.createAsync({
-      uri: RecordedURI,
+      uri: path,
     });
     setSound(sound);
-
-    console.log('Playing Sound');
+    
     await sound.playAsync(); }
 
   useEffect(() => {
     return sound
       ? () => {
-          console.log('Unloading Sound');
           sound.unloadAsync(); }
       : undefined;
   }, [sound]);
@@ -81,23 +89,64 @@ export const Card = (props) => {
 
       // Get the recorded URI here
       const result = AudioRecorder.current.getURI();
-      if (result) SetRecordedURI(result || URIFROMFileSystem);
-      console.log(result)
+      if (result) {
+        uploadRecord(result)
+      }
 
       // Reset the Audio Recorder
       AudioRecorder.current = new Audio.Recording();
       SetIsRecording(false);
-      playSound()
     } catch (error) {}
   };
 
 
   const DeleteRecord = () => {
-    props.setMovieModal(props.movie.Title)
-    props.setDeleteFunction(()=>()=>SetRecordedURI(""))
+    props.setMovieModal(movie.Title)
+    props.setDeleteFunction(()=>()=>{
+      LocalDBapi.put(`/delete-review/${movie.imdbID}`)
+      .then((response)=>{
+        if(response.status===200){
+          setMovie(response.data)
+        } else {
+          console.log("error when deleting review")
+        }
+      }).catch(e =>{
+        console.log(JSON.stringify(e))
+      })
+
+    })
     
   }
 
+  const uploadRecord = (uri) => {
+    let formdata = new FormData();
+    formdata.append('id', movie.imdbID)
+    formdata.append('review',{
+      uri: Platform.OS === 'android' ? uri : 'file://' + uri,
+      name: `${movie.imdbID}.m4a`,
+      type: 'audio/m4a' //mime type what you want
+    });
+    
+    LocalDBapi.put(
+      '/upload/', formdata,
+      { headers: 
+        {
+        'Content-Type': `multipart/form-data; boundary=${formdata._boundary}`,
+        } 
+      })
+    .then((response)=>{
+      if(response.status===200){
+        setMovie(response.data)
+      } else {
+        console.log("error when uploading review")
+      }
+    }).catch(e =>{
+      console.log(JSON.stringify(e))
+    })
+  }
+
+
+  
 
 
   return(
@@ -105,15 +154,15 @@ export const Card = (props) => {
       
       <MovieImage
         source={{
-          uri: `${props.movie.Poster}`,
+          uri: `${movie.Poster}`,
         }}
       />
-      <Title>{props.movie.Title}</Title>
+      <Title>{movie.Title}</Title>
       <Rating>
         <EntypoIcons name="star" size={15} color="#FCC419" />
-        <RatingText>X.X</RatingText>
+        <RatingText>8.2</RatingText>
       </Rating>
-      {RecordedURI === ""?
+      {movie.filename === null?
         <MicButton
           onPressIn={StartRecording}
           onPressOut={StopRecording}
@@ -130,8 +179,6 @@ export const Card = (props) => {
           </PlayButton>
         </ButtonsContainer>
       }
-      
-
     </Container>
   )
 };
